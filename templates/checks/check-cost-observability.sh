@@ -24,7 +24,7 @@ if [ "$HAS_S3" = "yes" ]; then
 fi
 
 # 3. Sem budget/cost alerts no CI
-HAS_BUDGET=$(grep -rlE "(aws-budgets|cost-anomaly|billing-alert)" .github/workflows/ terraform/ 2>/dev/null | head -1)
+HAS_BUDGET=$(grep -rlE "(aws-budgets|cost-anomaly|billing-alert)" .github/workflows/ .forgejo/workflows/ .gitea/workflows/ terraform/ 2>/dev/null | head -1)
 [ -z "$HAS_BUDGET" ] && add_finding "low" "Sem budget alert — fatura cresce sem aviso" "" ""
 
 # 4. Cron de slow query alert

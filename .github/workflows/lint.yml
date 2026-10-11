@@ -92,11 +92,11 @@ jobs:
             bash -n "$f" || { echo "SYNTAX ERROR: $f"; fail=1; }
           done
           exit $fail
-      - name: Self-test with real ripgrep
+      - name: Complete suite with real ripgrep
         run: |
           sudo apt-get update && sudo apt-get install -y ripgrep
           rg --version
-          bash scripts/check-selftest.sh
+          bash tests/run-tests.sh
       - name: Contrato de mapeamento check -> gate
         # Falha se um check voltar a rodar, achar, e nao chegar a dimensao
         # nenhuma. Foi assim que check-payments (crit de PCI) e
@@ -106,6 +106,8 @@ jobs:
 
       - name: Contrato de severidade
         run: node tests/severity-contract.test.mjs
+      - name: Sentinela, FastList JS/PostgreSQL/Forgejo e instalação Claude/Codex
+        run: node --test tests/sentinela-ingest.test.mjs tests/fastlist-regressions.test.mjs tests/install-runtime.test.mjs
 
       - name: Severidade no agregado + ruído auto-infligido
         # Falha se o run-report voltar a sair sem severity_totals, se o scanner

@@ -1,70 +1,35 @@
-# scripts/install.ps1
-#
-# Instala (ou atualiza) o skill blindar em ~/.claude/skills/blindar.
-#
-# Uso remoto:
-#   iwr -useb https://raw.githubusercontent.com/<owner>/blindar/main/scripts/install.ps1 | iex
-#
-# Uso local (depois de clonar):
-#   .\install.ps1
-
+# Single core installer for Claude/Codex. Local checkout or remote Git source.
 [CmdletBinding()]
 param(
-    [string]$Repo = $(if ($env:BLINDAR_REPO) { $env:BLINDAR_REPO } else { "maykonlong/blindar-claude" }),
-    [string]$Branch = $(if ($env:BLINDAR_BRANCH) { $env:BLINDAR_BRANCH } else { "main" })
+  [ValidateSet('auto','claude','codex','both')][string]$Runtime = 'auto',
+  [string]$Source = '',
+  [string]$Repo = $(if ($env:BLINDAR_REPO) { $env:BLINDAR_REPO } else { 'maykonlong/blindar-claude' }),
+  [string]$Branch = $(if ($env:BLINDAR_BRANCH) { $env:BLINDAR_BRANCH } else { 'main' }),
+  [switch]$Check
 )
-
 $ErrorActionPreference = 'Stop'
-
-$Target = Join-Path $env:USERPROFILE ".claude\skills\blindar"
-$ParentDir = Split-Path -Parent $Target
-
-if (-not (Test-Path $ParentDir)) {
-    New-Item -ItemType Directory -Path $ParentDir -Force | Out-Null
-}
-
-if (Test-Path $Target) {
-    Write-Host "blindar ja instalado em $Target" -ForegroundColor Yellow
-    $isGit = Test-Path (Join-Path $Target ".git")
-    if ($isGit) {
-        Write-Host "Atualizando via git pull..."
-        git -C $Target fetch --quiet
-        git -C $Target pull --ff-only
-        Write-Host "OK." -ForegroundColor Green
-    } else {
-        Write-Host "Instalacao existente nao e repo git. Para atualizar, remova manualmente:"
-        Write-Host "  Remove-Item -Recurse -Force `"$Target`""
-        Write-Host "Depois rode este script de novo."
-        exit 1
-    }
-    exit 0
-}
-
-# Tenta git clone primeiro
-$gitOk = $false
+Get-Command node -ErrorAction Stop | Out-Null
+$tempSource = $null
 try {
-    $null = Get-Command git -ErrorAction Stop
-    Write-Host "Clonando $Repo -> $Target..."
-    git clone --branch $Branch --depth 1 "https://github.com/$Repo.git" $Target
-    $gitOk = $true
-} catch {
-    Write-Host "git nao disponivel ou clone falhou: $($_.Exception.Message)" -ForegroundColor Yellow
+  if (-not $Source -and $PSScriptRoot) {
+    $candidate = Split-Path -Parent $PSScriptRoot
+    if (Test-Path -LiteralPath (Join-Path $candidate 'SKILL.md')) { $Source = $candidate }
+  }
+  if (-not $Source) {
+    $tempSource = Join-Path ([IO.Path]::GetTempPath()) ('blindar-install-' + [guid]::NewGuid().ToString('N'))
+    git clone --branch $Branch --depth 1 "https://github.com/$Repo.git" $tempSource
+    if ($LASTEXITCODE -ne 0) { throw 'git clone falhou' }
+    $Source = $tempSource
+  }
+  $arguments = @((Join-Path $Source 'scripts/install-runtime.mjs'), '--source', $Source, '--runtime', $Runtime)
+  if ($Check) { $arguments += '--check' }
+  & node @arguments
+  if ($LASTEXITCODE -ne 0) { throw "Instalação/verificação falhou (exit $LASTEXITCODE)" }
+} finally {
+  if ($tempSource -and (Test-Path -LiteralPath $tempSource)) {
+    $resolved = [IO.Path]::GetFullPath($tempSource)
+    $safeRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+    if (-not $resolved.StartsWith($safeRoot, [StringComparison]::OrdinalIgnoreCase) -or (Split-Path -Leaf $resolved) -notlike 'blindar-install-*') { throw 'Limpeza fora do diretório temporário recusada' }
+    Remove-Item -LiteralPath $resolved -Recurse -Force
+  }
 }
-
-if (-not $gitOk) {
-    Write-Host "Caindo pra download tarball (sem auto-update via git pull)..."
-    $TarballUrl = "https://github.com/$Repo/archive/refs/heads/$Branch.tar.gz"
-    $TempFile = Join-Path $env:TEMP "blindar-$Branch.tar.gz"
-    Invoke-WebRequest -Uri $TarballUrl -OutFile $TempFile -UseBasicParsing
-    # Requer tar (Win10+ tem nativo)
-    New-Item -ItemType Directory -Path $Target -Force | Out-Null
-    tar -xzf $TempFile -C $Target --strip-components=1
-    Remove-Item $TempFile
-}
-
-Write-Host ""
-Write-Host "blindar instalado em $Target" -ForegroundColor Green
-Write-Host ""
-Write-Host "Proximo passo: leia CHECKLIST.md"
-Write-Host "  notepad `"$Target\CHECKLIST.md`""
-Write-Host ""

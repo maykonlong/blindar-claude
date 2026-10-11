@@ -1,0 +1,6 @@
+interface:
+  display_name: "Blindar"
+  short_description: "Auditoria e hardening com evidências de produção"
+  default_prompt: "Use $blindar para auditar este projeto e validar os riscos com evidências."
+policy:
+  allow_implicit_invocation: false

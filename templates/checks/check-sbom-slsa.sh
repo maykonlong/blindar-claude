@@ -36,10 +36,10 @@ if [ -f "Dockerfile" ]; then
 fi
 
 # 3. GH Actions com SHA pin (não tag mutável)
-if [ -d ".github/workflows" ]; then
+if [ -d ".github/workflows" ] || [ -d ".forgejo/workflows" ] || [ -d ".gitea/workflows" ]; then
   log_info "Verificando uses: SHA-pinned..."
   TMP=$(mktemp)
-  rg -n "uses: [^@]+@v?\d+" .github/workflows/ 2>/dev/null > "$TMP" || true
+  rg -n "uses: [^@]+@v?\d+" .github/workflows/ .forgejo/workflows/ .gitea/workflows/ 2>/dev/null > "$TMP" || true
   ACTION_UNPIN=$(wc -l < "$TMP" || echo 0)
   if [ "$ACTION_UNPIN" -gt 0 ]; then
     add_finding "high" "$ACTION_UNPIN GitHub Action(s) usando tag em vez de SHA — supply chain risk" ".github/workflows/" ""
@@ -50,19 +50,19 @@ fi
 
 # 4. SBOM workflow ativo
 log_info "Verificando geração de SBOM..."
-HAS_SBOM=$(grep -lrE "(cyclonedx|@cyclonedx|spdx-tools|anchore/sbom-action|syft)" .github/workflows/ 2>/dev/null | head -1)
+HAS_SBOM=$(grep -lrE "(cyclonedx|@cyclonedx|spdx-tools|anchore/sbom-action|syft)" .github/workflows/ .forgejo/workflows/ .gitea/workflows/ 2>/dev/null | head -1)
 if [ -z "$HAS_SBOM" ]; then
   add_finding "med" "Sem geração de SBOM em CI — RFP federal exige" ".github/workflows/" ""
 fi
 
 # 5. SLSA provenance
-HAS_PROVENANCE=$(grep -lrE "(slsa-framework|in-toto|attestations:|sigstore)" .github/workflows/ 2>/dev/null | head -1)
+HAS_PROVENANCE=$(grep -lrE "(slsa-framework|in-toto|attestations:|sigstore)" .github/workflows/ .forgejo/workflows/ .gitea/workflows/ 2>/dev/null | head -1)
 if [ -z "$HAS_PROVENANCE" ]; then
   add_finding "low" "Sem SLSA provenance — atestado de build ausente" ".github/workflows/" ""
 fi
 
 # 6. Cosign signing
-HAS_COSIGN=$(grep -lrE "(cosign|sigstore/cosign)" .github/workflows/ 2>/dev/null | head -1)
+HAS_COSIGN=$(grep -lrE "(cosign|sigstore/cosign)" .github/workflows/ .forgejo/workflows/ .gitea/workflows/ 2>/dev/null | head -1)
 if [ -z "$HAS_COSIGN" ]; then
   add_finding "low" "Sem Cosign signing — artefatos não assinados" ".github/workflows/" ""
 fi

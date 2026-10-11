@@ -2,6 +2,7 @@
 # Materializa: functional-e2e
 BLINDAR_AGENT="check-functional-e2e"
 source "$(dirname "$0")/_lib.sh"
+source "$(dirname "$0")/_ci.sh"
 log_section "Check: functional-e2e (Playwright/Cypress)"
 
 is_nodejs || { emit_result "$BLINDAR_AGENT" "skipped" 0; exit 0; }
@@ -20,7 +21,7 @@ fi
 
 # 2. Existe pasta de testes E2E
 E2E_DIR=""
-for d in e2e tests/e2e cypress playwright __e2e__; do
+for d in e2e tests/e2e test/e2e cypress playwright __e2e__; do
   [ -d "$d" ] && E2E_DIR="$d" && break
 done
 
@@ -41,8 +42,7 @@ fi
 log_info "Framework: $E2E, testes em $E2E_DIR: $TEST_COUNT"
 
 # 4. CI roda E2E
-HAS_CI_E2E=$(grep -lE "(playwright|cypress|npx playwright|npx cypress)" .github/workflows/*.yml 2>/dev/null | wc -l)
-[ "$HAS_CI_E2E" -eq 0 ] && add_finding "med" "E2E configurado mas não roda em CI (.github/workflows/)" "" ""
+ci_has '(playwright|cypress|npm run (test:)?e2e)' || add_finding "med" "E2E sem comando detectado nos workflows GitHub/Forgejo/Gitea; configuração não comprova execução." "" ""
 
 # 5. Smoke test do golden path existe?
 GOLDEN=$(find "$E2E_DIR" \( -name "*smoke*" -o -name "*golden*" -o -name "*critical*" \) 2>/dev/null | wc -l)

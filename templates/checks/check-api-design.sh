@@ -41,7 +41,7 @@ fi
 
 # 2. Spectral lint em CI (se openapi.yaml existe)
 if has_file "openapi.yaml" || has_file "openapi.json"; then
-  if ! grep -rqE "spectral|@stoplight/spectral" .github/workflows/ 2>/dev/null; then
+  if ! grep -rqE "spectral|@stoplight/spectral" .github/workflows/ .forgejo/workflows/ .gitea/workflows/ 2>/dev/null; then
     add_finding "med" "OpenAPI sem Spectral lint em CI — quebras não detectadas" ".github/workflows/" ""
   fi
 fi

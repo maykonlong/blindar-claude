@@ -64,7 +64,7 @@ fi
 
 # ─── 3. Nada guarda o merge ───
 CI=0
-for d in .github/workflows .gitlab-ci.yml .circleci azure-pipelines.yml Jenkinsfile .drone.yml; do
+for d in .github/workflows .forgejo/workflows .gitea/workflows .gitlab-ci.yml .circleci azure-pipelines.yml Jenkinsfile .drone.yml; do
   if [ -d "$d" ] && [ -n "$(find "$d" -name '*.y*ml' 2>/dev/null | head -1)" ]; then CI=1; break; fi
   [ -f "$d" ] && { CI=1; break; }
 done

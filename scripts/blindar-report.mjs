@@ -77,6 +77,7 @@ function evidencias(n) {
   const r = { lidos: 0, crit: 0, high: 0, semCobertura: [], falharam: [] };
   if (!existsSync(dir)) return r;
   const agentes = new Set(agentesDaFase(n).map((a) => `check-${a}`));
+  if (n === 2 || n === 15) agentes.add('check-sentinela');
   let arquivos = [];
   try { arquivos = readdirSync(dir).filter((f) => f.endsWith('.json')); } catch { return r; }
   for (const f of arquivos) {
@@ -86,7 +87,8 @@ function evidencias(n) {
     try { j = JSON.parse(readFileSync(join(dir, f), 'utf8')); } catch { continue; }
     r.lidos++;
     if (j.missing_tool) r.semCobertura.push(`${nome} (falta ${j.missing_tool})`);
-    if (j.status === 'failed') r.falharam.push(nome);
+    if (j.status === 'failed' || j.status === 'errored') r.falharam.push(nome);
+    if (j.evidence_kind === 'dynamic' && j.exercised !== true) r.semCobertura.push(`${nome} (${j.not_exercised_reason || 'não exercitado'})`);
     // .blindar/results/ vive no diretório do projeto (não-confiável). Um result
     // com findings:123 / findings:[null] / objeto estouraria "not iterable" e
     // crasharia justamente o gate que deveria RECUSAR marcar a fase "ok" com

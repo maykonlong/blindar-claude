@@ -6,6 +6,11 @@ BLINDAR_AGENT="check-tenant-isolation"
 source "$(dirname "$0")/_lib.sh"
 
 log_section "Check: tenant isolation"
+source "$(dirname "$0")/_js-postgres.sh"
+if ! js_pg_findings tenant; then
+  BLINDAR_MISSING_TOOL="node/js-postgres scanner"
+  emit_result "$BLINDAR_AGENT" "skipped" 0; exit 0
+fi
 
 if ! command -v rg >/dev/null 2>&1; then
   emit_result "$BLINDAR_AGENT" "skipped" 0
@@ -16,7 +21,7 @@ fi
 IS_MULTITENANT=0
 if grep -lE "tenantId|tenant_id" prisma/schema.prisma 2>/dev/null; then
   IS_MULTITENANT=1
-elif grep -rlE "tenantId|tenant_id" src/ apps/ 2>/dev/null | head -1; then
+elif rg -q 'tenantId|tenant_id|organization_id|search_path|porLoja' -g '*.js' -g '*.mjs' -g '*.cjs' -g '*.ts' -g '*.py' -g '*.sql' -g '!test/**' -g '!tests/**' . 2>/dev/null; then
   IS_MULTITENANT=1
 fi
 
@@ -32,7 +37,7 @@ load_intelligence_globs "$BLINDAR_AGENT"
 # 1. findMany/findFirst/findUnique sem where tenantId
 log_info "Buscando queries sem tenant_id..."
 TMP=$(mktemp)
-rg -n "(\.(findMany|findFirst|findUnique|count|aggregate)\(\{|\.query\([A-Z]\w*\)|\.objects\.(filter|get|all)\()" --type ts --type py "${IGNORE[@]}" "${INTEL_GLOBS[@]}" -A 5 2>/dev/null | \
+rg -n "(\.(findMany|findFirst|findUnique|count|aggregate)\(\{|\.query\([A-Z]\w*\)|\.objects\.(filter|get|all)\()" --type ts --type js --type py "${IGNORE[@]}" "${INTEL_GLOBS[@]}" -A 5 2>/dev/null | \
   awk '/findMany|findFirst|findUnique|count|aggregate/ {
     block=$0; getline; for(i=0;i<5;i++) { block=block " " $0; getline }
     if (block !~ /tenantId|tenant_id|@blindar:global/) print FILENAME":"FNR": "block
@@ -61,7 +66,7 @@ rm -f "$TMP"
 
 # 3. Verifica se existe arquivo de teste de isolation
 log_info "Verificando tenant-isolation tests..."
-if find tests/ test/ __tests__/ -name "*tenant*isolation*" -o -name "*isolation*tenant*" 2>/dev/null | head -1 | grep -q .; then
+if find tests/ test/ __tests__/ e2e/ -type f 2>/dev/null | grep -iE '(tenant.*iso|iso.*tenant|cross.tenant|isolamento|multi.loja)' | head -1 | grep -q .; then
   log_pass "tests de isolamento detectados"
 else
   add_finding "high" "Nenhum teste de tenant-isolation detectado" "tests/" ""

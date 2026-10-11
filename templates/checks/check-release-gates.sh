@@ -80,7 +80,7 @@ gate_of() {
   # Excecao declarada vem antes do mapa: quem tem motivo escrito nao disputa gate.
   if [ -n "$(motivo_fora_do_gate "$1")" ]; then echo "OUT_OF_GATE"; return; fi
   case "$1" in
-    check-security|check-access-control|check-cryptography|check-secrets*|check-runtime-secrets|\
+    check-sentinela|sentinela|check-security|check-access-control|check-cryptography|check-secrets*|check-runtime-secrets|\
     check-headers-security|check-cors-csrf|check-rate-limit|check-auth-premium|\
     check-business-logic|check-prototype-pollution|check-client-open-redirect|check-semgrep|\
     check-gitleaks|check-trivy|check-osv-scanner|check-supply-chain|check-sbom-slsa|\
@@ -199,11 +199,25 @@ if [ "$JSON_READER" = "node" ]; then
     } catch (e) { /* sem arquivo de aceite: tudo e novo */ }
     let names = [];
     try { names = fs.readdirSync(dir); } catch (e) { process.exit(0); }
-    for (const name of names.filter(n => /^check-.*\.json$/.test(n))) {
+    for (const name of names.filter(n => /^check-.*\.json$/.test(n) || n === "sentinela.json")) {
       let j;
       try { j = JSON.parse(fs.readFileSync(path.join(dir, name), "utf8")); }
-      catch (e) { continue; }
-      if (!j.agent) continue;
+      catch (e) { process.stdout.write("check-security|errored|0|0|1|0|0|0|0\n"); continue; }
+      if (!j.agent) { process.stdout.write("check-security|errored|0|0|1|0|0|0|0\n"); continue; }
+      if (j.agent === "sentinela" || j.agent === "check-sentinela") {
+        j.agent = "check-sentinela";
+        j.evidence_kind = "dynamic";
+        const ev = j.evidence;
+        const fresh = Array.isArray(ev) && ev.length > 0 && ev.every(e => {
+          const age = Date.now() - Date.parse(e.timestamp);
+          return Number.isFinite(age) && age >= -300000 && age <= 86400000 &&
+            /^[a-f0-9]{40}$/i.test(e.git_sha || "") && /^https?:\/\//.test(e.target || "") &&
+            (!process.env.BLINDAR_EXPECTED_DEPLOY_SHA || e.git_sha === process.env.BLINDAR_EXPECTED_DEPLOY_SHA) &&
+            (!process.env.BLINDAR_EXPECTED_TARGET || e.target === process.env.BLINDAR_EXPECTED_TARGET);
+        });
+        j.exercised = j.exercised === true && fresh;
+        if (!j.exercised && j.status === "passed") j.status = "skipped";
+      }
       const f = Array.isArray(j.findings) ? j.findings : [];
       const crit = f.filter(x => x && x.severity === "crit").length;
       const high = f.filter(x => x && x.severity === "high").length;
@@ -217,12 +231,12 @@ if [ "$JSON_READER" = "node" ]; then
       const exercised = j.exercised === true ? "1" : "0";
       process.stdout.write([j.agent, j.status || "unknown", crit, high, mt, dyn, exercised, critNovo, highNovo].join("|") + "\n");
     }
-  ' "$RESULTS_DIR" "$ACCEPTED_FPS" > "$RAW" 2>/dev/null || true
+  ' "$RESULTS_DIR" "$ACCEPTED_FPS" > "$RAW" || printf 'check-security|errored|0|0|1|0|0|0|0\n' >> "$RAW"
 else
-  for f in "$RESULTS_DIR"/check-*.json; do
+  for f in "$RESULTS_DIR"/check-*.json "$RESULTS_DIR"/sentinela.json; do
     [ -f "$f" ] || continue
     agent=$(jq -r '.agent // ""' "$f" 2>/dev/null)
-    [ -z "$agent" ] && continue
+    [ -z "$agent" ] && { printf 'check-security|errored|0|0|1|0|0|0|0\n' >> "$RAW"; continue; }
     status=$(jq -r '.status // "unknown"' "$f" 2>/dev/null)
     crit=$(jq '[.findings[]? | select(.severity=="crit")] | length' "$f" 2>/dev/null || echo 0)
     high=$(jq '[.findings[]? | select(.severity=="high")] | length' "$f" 2>/dev/null || echo 0)
@@ -231,6 +245,8 @@ else
     mt=$(jq -r 'if .missing_tool == null then "0" else "1" end' "$f" 2>/dev/null || echo 0)
     dyn=$(jq -r 'if .evidence_kind == "dynamic" then "1" else "0" end' "$f" 2>/dev/null || echo 0)
     exercised=$(jq -r 'if .exercised == true then "1" else "0" end' "$f" 2>/dev/null || echo 0)
+    # A validação de proveniência Sentinela requer Node. Sem ele não há prova.
+    case "$agent" in sentinela|check-sentinela) dyn=1; exercised=0; [ "$status" != passed ] || status=skipped ;; esac
     # Novo = fingerprint que nao aparece no arquivo de aceite. Sem `fp`, o
     # achado conta como novo: o default do desconhecido nao e "ja aceito".
     critn=$(jq -r --rawfile acc "$ACCEPTED_FPS" '[.findings[]? | select(.severity=="crit") | select((.fp // "") as $x | ($acc | split("\n") | index($x)) == null)] | length' "$f" 2>/dev/null || echo "$crit")
@@ -302,7 +318,11 @@ for g in $GATES; do
     read -r ncritn nhighn <<< "$(awk -F'|' -v g="$g" '$1==g {c+=$9; h+=$10} END{print c+0, h+0}' "$ROWS")"
     ncrita=$((ncrit - ncritn)); nhigha=$((nhigh - nhighn))
 
-    if [ "$ncritn" -gt 0 ]; then
+    nerror=$(awk -F'|' -v g="$g" '$1==g && $3=="errored"' "$ROWS" | wc -l | tr -d ' ')
+    ndyn_missing=$(awk -F'|' -v g="$g" '$1==g && $7=="1" && $8!="1"' "$ROWS" | wc -l | tr -d ' ')
+    if [ "$nerror" -gt 0 ]; then
+      status="BLOCKED"; evid="$nerror evidência(s) inválida(s) — corrija a coleta"
+    elif [ "$ncritn" -gt 0 ]; then
       status="BLOCKED"; evid="$ncritn crit NOVO em $n check(s)"
       [ "$ncrita" -gt 0 ] && evid="$evid (+$ncrita aceito)"
     elif [ "$ncrita" -gt 0 ]; then
@@ -311,6 +331,8 @@ for g in $GATES; do
       status="PASS WITH WARNINGS"; evid="$ncrita crit aceito em $ACCEPT_FILE, 0 novo"
     elif [ "$nunver" -gt 0 ]; then
       status="PASS WITH WARNINGS"; evid="$nunver check(s) não verificados (ferramenta ausente)"
+    elif [ "$ndyn_missing" -gt 0 ]; then
+      status="NOT EXERCISED"; evid="$ndyn_missing check(s) dinâmico(s) sem medição válida"
     elif [ "$nfail" -gt 0 ]; then
       status="PASS WITH WARNINGS"
       if [ "$nhigh" -ne "$nhighn" ]; then

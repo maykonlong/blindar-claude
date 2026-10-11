@@ -1,46 +1,25 @@
 ---
 name: blindar
 description: |
-  Audita, blinda, otimiza e prepara o projeto para produção. Detecta primeiro a
-  natureza do trabalho — GREENFIELD (criar do zero), HARDEN (blindar existente),
-  FEATURE (acrescentar capacidade sem estragar o resto), EVOLVE (já em produção,
-  incremental e reversível), RECOVERY (quebrado, estabilizar antes) ou COLLAB
-  (o repositório é o problema: git, CI, docs e revisão para a equipe) — e só então roda o pipeline: launcher (5 perguntas + menu
-  de 19 módulos) → baseline → discovery → sec.html → rounds pequenos (1 PR cada)
-  → adversarial review → production checklist → release gates → relatório.
-  Mantém sec.html como dashboard vivo. Release decidida por 11 gates
-  independentes com veredito GO / CONDITIONAL GO / NO-GO — dimensão sem check
-  executado conta como NOT VERIFIED, nunca como aprovação. Modos de execução:
-  AUTO, SUPERVISIONADO, ESCOLHIDOS. Cobre segurança, arquitetura, banco
-  (inclusive provar que a migração SQLite→PostgreSQL chegou ao runtime),
-  paridade de ambientes, resiliência, observabilidade, LGPD, a11y,
-  responsividade, e elimina mocks/console.log/TODOs.
-
-triggers:
-  - "blindar"
-  - "blinda este projeto"
-  - "deixa pronto pra produção"
-  - "production ready"
-  - "harden this project"
-  - "cria do zero já blindado"
-  - "o projeto quebrou"
-  - "migra pra postgres"
-  - "implementa"
-  - "adiciona"
-  - "cria a tela de"
-  - "organiza o git"
-  - "preparar para a equipe"
+  Auditoria e hardening de projetos para produção, com checks determinísticos,
+  playbooks e gates baseados em evidências. Use quando o usuário pedir blindar,
+  auditar segurança, avaliar prontidão de produção ou executar um módulo do
+  Blindar. Cobre JavaScript, TypeScript, Python, PostgreSQL, CI GitHub/Forgejo,
+  integração DAST com Sentinela e relatórios de riscos. Funciona em Claude e
+  Codex com o mesmo núcleo. Alterar o próprio Blindar não inicia auditoria.
 ---
 
 # blindar — orquestrador
 
+Antes de executar, leia [adaptação Claude/Codex e integração Sentinela](docs/RUNTIMES.md). Defina `BLINDAR_SKILL_ROOT` com o caminho absoluto da pasta deste SKILL.md. Os comandos abaixo usam essa raiz, incluindo instalações em `CODEX_HOME` customizado.
+
 ## EXECUÇÃO MANDATÓRIA — LEIA ANTES DE TUDO
 
 
-Quando esta skill for invocada (`blindar`, `blinda este projeto`, etc.), você (Claude) DEVE executar EXATAMENTE esta sequência, sem pular, sem perguntar antes de cada passo, sem alternativas:
+Quando esta skill for invocada (`blindar`, `blinda este projeto`, etc.), você (o assistente) DEVE executar EXATAMENTE esta sequência, sem pular, sem perguntar antes de cada passo, sem alternativas:
 
 0. **Checagem de versão (1× por dia).** Rode
-   `bash ~/.claude/skills/blindar/scripts/check-update.sh --quiet`
+   `bash "$BLINDAR_SKILL_ROOT/scripts/check-update.sh" --quiet`
    (Windows sem bash: `scripts/check-update.ps1 -Quiet`).
    Ele tem cache de 24h, então na segunda invocação do mesmo dia sai na hora.
    - **Exit 10 = existe versão nova.** NÃO atualize sozinho: mostre a versão
@@ -54,7 +33,7 @@ Quando esta skill for invocada (`blindar`, `blinda este projeto`, etc.), você (
      saber.
    - Desativar de vez: `BLINDAR_SKIP_UPDATE_CHECK=1`.
 1. Registre a hora de início: `date -u +%Y-%m-%dT%H:%M:%SZ`
-2. `bash ~/.claude/skills/blindar/scripts/blindar-run.sh --parallel auto` (ou `--fast` se usuário pediu rápido)
+2. `bash "$BLINDAR_SKILL_ROOT/scripts/blindar-run.sh" --parallel auto` (ou `--fast` se usuário pediu rápido)
 3. Aguardar conclusão (exit code 0-4)
 4. Ler `.blindar/run-report.json` e **validar frescor**: `ran_at` DEVE ser ≥ hora
    registrada no passo 1. Se for mais antigo, o orquestrador morreu antes de
@@ -62,13 +41,13 @@ Quando esta skill for invocada (`blindar`, `blinda este projeto`, etc.), você (
    apresente um report de execução anterior como se fosse desta.
 5. **Se `deferred > 0`** — sua fila de trabalho, **não é opcional**.
 
-   **Rode em SUBAGENTES PARALELOS, um por agente**, não em sequência no seu
+   **Quando permitido pelo runtime, rode em subagentes, um por agente**, isolando o
    próprio contexto. Num projeto real isso foram **49 playbooks**: executá-los
    em fila enche a janela e os últimos recebem menos atenção que os primeiros —
    e ninguém percebe, porque o relatório sai igual. Contexto isolado por agente
    é o que mantém o quadragésimo nono tão cuidadoso quanto o primeiro.
 
-   Dispare em lotes (6–8 por vez). Cada subagente recebe:
+   Use somente as vagas de subagentes realmente disponíveis e respeite as permissões do runtime. Sem delegação disponível ou permitida, execute sequencialmente e registre a limitação; não declare revisão independente. Cada subagente recebe:
 
    ```
    Execute o playbook agents/<agent>.md contra o projeto em <caminho>.
@@ -118,6 +97,12 @@ Quando esta skill for invocada (`blindar`, `blinda este projeto`, etc.), você (
 
    Exceção: o operador pediu explicitamente para pular.
 6. Ler `.blindar/proactive-analysis.md` se existir (análise consultiva nas 8 dimensões)
+   Se houver SARIF Sentinela para este alvo/SHA, importe pela ponte conforme
+   [RUNTIMES](docs/RUNTIMES.md). Após a importação, recalcule os gates com
+   `bash "$BLINDAR_SKILL_ROOT/templates/checks/check-release-gates.sh"` e valide
+   `generated_at` desta execução. Esta importação/decisão é uma exceção explícita
+   à proibição abaixo de executar checks individuais. O gate inclui resultados
+   externos e não pode ser substituído pelo rollup anterior à importação.
 7. Apresentar ao usuário:
    - Resumo numérico (passed/failed/skipped/deferred/cobertura%), incluindo os
      deferred que VOCÊ executou no passo 5
@@ -127,6 +112,8 @@ Quando esta skill for invocada (`blindar`, `blinda este projeto`, etc.), você (
      nos `check-*.json`. Medido no FastList em set/2026 — 4 crit do semgrep e
      206 high do mock-killer invisíveis no agregado. Hoje o headline vem do
      rollup; abrir arquivo por agente é drill-down, não pré-requisito.
+   - Se importou Sentinela, use também `gates.json.findings` e `verdict`; o
+     `severity_totals` da execução anterior não inclui essa evidência externa.
    - Top 5 findings críticos (severity crit/high)
    - Análise proativa resumida (se gerada)
    - Recomendação de próxima ação
@@ -166,7 +153,7 @@ host aprovado.
 ### Guard da lista CRITICAL (⭐ v0.70)
 
 ```bash
-bash ~/.claude/skills/blindar/scripts/install-hooks.sh
+bash $BLINDAR_SKILL_ROOT/scripts/install-hooks.sh
 ```
 
 Instala um hook `PreToolUse` que **pausa** comandos da lista CRITICAL do
@@ -561,4 +548,3 @@ Em todos: 1 reporte claro do que falta, sem tentar adivinhar.
 
 
 Ver [`VERSION`](VERSION) e [`CHANGELOG.md`](CHANGELOG.md).
-

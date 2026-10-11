@@ -3,6 +3,11 @@
 BLINDAR_AGENT="check-business-logic"
 source "$(dirname "$0")/_lib.sh"
 log_section "Check: business-logic (ASVS V11 — preço/desconto/race)"
+source "$(dirname "$0")/_js-postgres.sh"
+if ! js_pg_findings business; then
+  BLINDAR_MISSING_TOOL="node/js-postgres scanner"
+  emit_result "$BLINDAR_AGENT" "skipped" 0; exit 0
+fi
 
 if ! command -v rg >/dev/null 2>&1; then emit_result "$BLINDAR_AGENT" "skipped" 0; exit 0; fi
 
@@ -14,7 +19,7 @@ FAIL=0
 TMP=$(mktemp)
 rg -n "(amount|price|total|discount)\s*=\s*.*req\.(body|query|params)" --type ts --type py "${IGNORE[@]}" "${INTEL_GLOBS[@]}" > "$TMP" 2>/dev/null || true
 CLIENT_PRICING=$(wc -l < "$TMP" || echo 0)
-[ "$CLIENT_PRICING" -gt 0 ] && add_finding "crit" "$CLIENT_PRICING — preço/desconto do client aceito sem validar no DB" "" "" && FAIL=1
+[ "$CLIENT_PRICING" -gt 0 ] && add_finding "med" "$CLIENT_PRICING entradas monetárias da requisição — revisar autorização/validação. Padrão estático não comprova preço adulterável." "" ""
 rm -f "$TMP"
 
 # 2. Optimistic locking (version column) ausente
@@ -30,5 +35,10 @@ RACE=$(grep -c "findUnique\|findFirst" "$TMP" 2>/dev/null)
 [ "$RACE" -gt 0 ] && add_finding "med" "$RACE read-then-write sem transaction (race condition risk)" "" ""
 rm -f "$TMP"
 
+case "${FINDINGS[*]}" in *'"severity":"crit"'*|*'"severity":"high"'*) FAIL=1 ;; esac
 [ "$FAIL" -eq 1 ] && { emit_result "$BLINDAR_AGENT" "failed" 1; exit 1; }
+if [ "${#FINDINGS[@]}" -gt 0 ]; then
+  # Triagem med continua visível como pendência, sem inventar crit/exit 1.
+  emit_result "$BLINDAR_AGENT" "failed" 0; exit 0
+fi
 emit_result "$BLINDAR_AGENT" "passed" 0

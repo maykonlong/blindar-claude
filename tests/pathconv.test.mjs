@@ -32,7 +32,12 @@ const runBash = (args, env = {}) =>
 try {
   // ─── 1. validate.sh: JSON válido não pode ser reportado como inválido ─────
   const good = join(TMP, 'cfg.json');
-  writeFileSync(good, JSON.stringify({ schema: 'blindar/run-report@v1', ok: true }));
+  // Precisa ser válido também com jq presente (Linux valida required). A
+  // fixture antiga só parseava, e falhava onde havia validação estrutural.
+  writeFileSync(good, JSON.stringify({ schema: 'blindar/run-report@v1',
+    ran_at: new Date().toISOString(), duration_sec: 0, total_agents: 0,
+    passed: 0, failed: 0, skipped: 0, deferred: 0, errored: 0, coverage_pct: 0,
+    severity_totals: { crit: 0, high: 0, med: 0, low: 0 }, results: [] }));
   const r1 = runBash([VALIDATE, 'run-report', good]);
   t('validate.sh aceita JSON valido (exit 0)', r1.status === 0);
   t('validate.sh nao acusa "JSON invalido" em arquivo valido',

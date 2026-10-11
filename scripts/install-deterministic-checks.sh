@@ -48,6 +48,7 @@ done
 
 echo ""
 echo "1b. Orquestrador único..."
+copy_if_absent "$SKILL_DIR/scripts/js-postgres-audit.mjs" "scripts/blindar/js-postgres-audit.mjs" "scanner JS/PostgreSQL"
 copy_if_absent "$SKILL_DIR/scripts/blindar-run.sh" "scripts/blindar-run.sh" "entrypoint mandatório"
 
 echo ""
@@ -56,9 +57,12 @@ mkdir -p "scripts/blindar/pipeline"
 copy_if_absent "$SKILL_DIR/pipeline/MODULE-MAP.json" "scripts/blindar/pipeline/MODULE-MAP.json" "fonte da verdade"
 
 echo ""
-echo "2. GitHub Actions workflow..."
+CI_DIR=".github"
+[ -d .gitea ] && CI_DIR=".gitea"
+[ -d .forgejo ] && CI_DIR=".forgejo"
+echo "2. Workflow em $CI_DIR..."
 copy_if_absent "$TEMPLATES/.github/workflows/blindar.yml" \
-               ".github/workflows/blindar.yml" "CI"
+               "$CI_DIR/workflows/blindar.yml" "CI (revisar actions disponíveis no provedor)"
 
 echo ""
 echo "3. Husky hooks (se Husky configurado)..."

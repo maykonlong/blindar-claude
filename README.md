@@ -1,12 +1,17 @@
 # blindar
 
-Skill do [Claude Code](https://claude.com/claude-code) que **audita, blinda,
+Skill para Claude Code e Codex que **audita, blinda,
 otimiza e prepara projetos para produção** — e também sabe criar projetos
 novos do zero, gerar/refazer frontend lendo o backend, e entregar pacote
 completo (DEPLOY/MANUAL/API/Postman/diagramas/SLA) ao final.
 
-**v0.83.2 — 170 agentes em 19 módulos numerados, com camada determinística
+**v0.84.0 — 170 agentes em 19 módulos numerados, com camada determinística
 (144 checks executáveis) que garante cobertura independente da diligência do LLM.**
+
+Instalação com núcleo único: `node scripts/install-runtime.mjs --runtime both`
+(ou `codex`, `claude`, `auto`). [Guia Claude/Codex, Sentinela e Forgejo](docs/RUNTIMES.md).
+Esta versão integra SARIF do Sentinela ao gate SECURITY, cobre riscos em
+JavaScript/PostgreSQL direto e reconhece workflows Forgejo/Gitea.
 
 Comportamento: **launcher curto** no início (4 perguntas + menu de
 19 módulos, ≤30s) → roda autônomo até termination conforme modo escolhido:
