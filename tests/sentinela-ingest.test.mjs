@@ -53,6 +53,13 @@ test('importação CLI → gate SECURITY: crítico bloqueia; erro substitui apro
     let g = gate(); assert.equal(g.verdict, 'NO-GO'); assert.equal(g.gates.find(x => x.gate === 'SECURITY').status, 'BLOCKED');
     writeFileSync(input, JSON.stringify(sarif())); assert.equal(ingest().status, 0);
     g = gate(); assert.equal(g.gates.find(x => x.gate === 'SECURITY').status, 'PASS');
+    const resultFile = join(dir, '.blindar/results/check-sentinela.json');
+    const old = JSON.parse(readFileSync(resultFile, 'utf8'));
+    old.evidence[0].timestamp = '2000-01-01T00:00:00Z';
+    writeFileSync(resultFile, JSON.stringify(old));
+    g = gate(); assert.equal(g.gates.find(x => x.gate === 'SECURITY').status, 'NOT EXERCISED');
+    // Um result aprovado na semana passada não continua valendo no gate de hoje.
+    assert.equal(ingest().status, 0);
     writeFileSync(input, '{}'); assert.equal(ingest().status, 2);
     assert.equal(JSON.parse(readFileSync(join(dir, '.blindar/results/check-sentinela.json'))).status, 'errored');
     g = gate(); assert.equal(g.verdict, 'NO-GO'); assert.equal(g.gates.find(x => x.gate === 'SECURITY').status, 'BLOCKED');
