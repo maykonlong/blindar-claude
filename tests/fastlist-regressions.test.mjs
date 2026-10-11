@@ -19,7 +19,7 @@ function check(dir, name) {
 }
 test('JS/MJS/CJS: preço de requisição dispara e preço do catálogo não', () => {
   for (const ext of ['js', 'mjs', 'cjs']) fixture({ ['server.' + ext]: 'const price = Number(req.body.price);' }, dir => {
-    const r = check(dir, 'check-business-logic'); assert.equal(r.severities.med, 1); assert.equal(r.severities.crit, 0);
+    const r = check(dir, 'check-business-logic'); assert.equal(r.severities.med, 1); assert.equal(r.severities.crit, 0); assert.equal(r.status, 'failed');
     writeFileSync(join(dir, 'server.' + ext), 'const price = catalogo.preco;');
     assert.equal(check(dir, 'check-business-logic').findings_count, 0);
   });

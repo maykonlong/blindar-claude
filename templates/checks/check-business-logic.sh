@@ -37,4 +37,8 @@ rm -f "$TMP"
 
 case "${FINDINGS[*]}" in *'"severity":"crit"'*|*'"severity":"high"'*) FAIL=1 ;; esac
 [ "$FAIL" -eq 1 ] && { emit_result "$BLINDAR_AGENT" "failed" 1; exit 1; }
+if [ "${#FINDINGS[@]}" -gt 0 ]; then
+  # Triagem med continua visível como pendência, sem inventar crit/exit 1.
+  emit_result "$BLINDAR_AGENT" "failed" 0; exit 0
+fi
 emit_result "$BLINDAR_AGENT" "passed" 0
