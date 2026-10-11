@@ -97,6 +97,12 @@ Quando esta skill for invocada (`blindar`, `blinda este projeto`, etc.), você (
 
    Exceção: o operador pediu explicitamente para pular.
 6. Ler `.blindar/proactive-analysis.md` se existir (análise consultiva nas 8 dimensões)
+   Se houver SARIF Sentinela para este alvo/SHA, importe pela ponte conforme
+   [RUNTIMES](docs/RUNTIMES.md). Após a importação, recalcule os gates com
+   `bash "$BLINDAR_SKILL_ROOT/templates/checks/check-release-gates.sh"` e valide
+   `generated_at` desta execução. Esta importação/decisão é uma exceção explícita
+   à proibição abaixo de executar checks individuais. O gate inclui resultados
+   externos e não pode ser substituído pelo rollup anterior à importação.
 7. Apresentar ao usuário:
    - Resumo numérico (passed/failed/skipped/deferred/cobertura%), incluindo os
      deferred que VOCÊ executou no passo 5
@@ -106,6 +112,8 @@ Quando esta skill for invocada (`blindar`, `blinda este projeto`, etc.), você (
      nos `check-*.json`. Medido no FastList em set/2026 — 4 crit do semgrep e
      206 high do mock-killer invisíveis no agregado. Hoje o headline vem do
      rollup; abrir arquivo por agente é drill-down, não pré-requisito.
+   - Se importou Sentinela, use também `gates.json.findings` e `verdict`; o
+     `severity_totals` da execução anterior não inclui essa evidência externa.
    - Top 5 findings críticos (severity crit/high)
    - Análise proativa resumida (se gerada)
    - Recomendação de próxima ação

@@ -332,7 +332,7 @@ for g in $GATES; do
     elif [ "$nunver" -gt 0 ]; then
       status="PASS WITH WARNINGS"; evid="$nunver check(s) não verificados (ferramenta ausente)"
     elif [ "$ndyn_missing" -gt 0 ]; then
-      status="PASS WITH WARNINGS"; evid="$ndyn_missing check(s) dinâmico(s) sem medição válida"
+      status="NOT EXERCISED"; evid="$ndyn_missing check(s) dinâmico(s) sem medição válida"
     elif [ "$nfail" -gt 0 ]; then
       status="PASS WITH WARNINGS"
       if [ "$nhigh" -ne "$nhighn" ]; then

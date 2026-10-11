@@ -1,7 +1,8 @@
 # Validação das integrações — 2026-10-11
 
 Escopo: Sentinela/SARIF, JS/PostgreSQL, Forgejo/Gitea e instalação Claude/Codex.
-Fonte de referência: checkout local FastList, branch main, Node 24.12.0.
+Fonte de referência: checkout local FastList, branch main,
+commit `587e267de52400f7d45154b62579638d6bb537e9`, Node 24.12.0.
 Não equivale a auditoria do deploy atual nem autorização de promoção.
 
 ## Blindar
@@ -37,7 +38,7 @@ autenticada com navegador e operador não executada nesta validação.
 
 ## FastList com PostgreSQL real
 
-Servidor PostgreSQL 16 temporário, exclusivo desta validação, em loopback.
+Servidor PostgreSQL 16.13 temporário, exclusivo desta validação, em loopback.
 Autenticação SCRAM para os papéis criados pelos testes. Nenhum banco de
 produção acessado. `FASTLIST_EXIGE_POSTGRES=1`; 8 arquivos aprovados, 86 testes
 aprovados e 1 pulado: permissão POSIX do arquivo de credenciais, inaplicável no

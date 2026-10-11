@@ -61,16 +61,18 @@ elif [ -d "$SCRIPT_DIR/blindar" ]; then
   MODULE_MAP="$SCRIPT_DIR/blindar/pipeline/MODULE-MAP.json"
   SKILL_DIR="$SCRIPT_DIR"
 else
-  # Fallback: tenta encontrar via ~/.claude/skills/blindar
-  if [ -d "$HOME/.claude/skills/blindar" ]; then
-    SKILL_DIR="$HOME/.claude/skills/blindar"
-    CHECKS_DIR="$SKILL_DIR/templates/checks"
-    MODULE_MAP="$SKILL_DIR/pipeline/MODULE-MAP.json"
-  else
+  # Explicit root first, then installed runtimes. Canonical layout above wins.
+  SKILL_DIR=""
+  for root in "${BLINDAR_SKILL_ROOT:-}" "${CODEX_HOME:-$HOME/.codex}/skills/blindar" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/blindar"; do
+    [ -n "$root" ] && [ -f "$root/pipeline/MODULE-MAP.json" ] && { SKILL_DIR="$root"; break; }
+  done
+  if [ -z "$SKILL_DIR" ]; then
     echo "ERRO: não consegui localizar checks/ nem MODULE-MAP.json" >&2
     echo "Esperava: $SCRIPT_DIR/../templates/ ou $SCRIPT_DIR/blindar/ ou ~/.claude/skills/blindar/" >&2
     exit 72
   fi
+  CHECKS_DIR="$SKILL_DIR/templates/checks"
+  MODULE_MAP="$SKILL_DIR/pipeline/MODULE-MAP.json"
 fi
 PROJECT_DIR="${PWD}"
 RESULTS_DIR="${BLINDAR_DIR:-$PROJECT_DIR/.blindar}/results"
