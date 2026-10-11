@@ -3,6 +3,23 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [0.84.0] — 2026-10-11
+
+- Sentinela: resultado canônico `check-sentinela`, mapeado em SECURITY e no
+  relatório de segurança. Valida SARIF, alvo, SHA implantado, data e conclusão.
+  Importação inválida grava erro e bloqueia; evidência velha/incompleta não
+  comprova runtime. Preserva severidade e fingerprint para aceite explícito.
+- JavaScript/PostgreSQL: preço direto do cliente, SQL interpolado, estoque
+  read/modify/write, contexto de pool/search_path e testes de isolamento em
+  `test/`, com nomes em português. Checks continuam evidência estática.
+- Forgejo/Gitea: CI, E2E, lockfile, backup/restore, rollback, retenção,
+  observabilidade e supply chain consideram workflows próprios e `.yaml`.
+- Claude/Codex: um instalador de núcleo único, destinos explícitos ou
+  detectados, suporte CODEX_HOME, manifesto e verificação de drift. Não altera
+  hooks nem configurações globais. Skill Codex com invocação explícita.
+- Regressões baseadas no FastList adicionadas à suíte e CI; conclusão de
+  runtime separada de presença de testes/workflows. Veja docs/RUNTIMES.md.
+
 ## [0.83.2] — 2026-09-10
 
 ### A versão não aparecia para quem chegava pelo GitHub

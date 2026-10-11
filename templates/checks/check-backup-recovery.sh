@@ -11,7 +11,7 @@ if ! is_prisma && ! is_python; then emit_result "$BLINDAR_AGENT" "skipped" 0; ex
   add_finding "med" "Sem docs/runbooks/backup-restore.md — DR não documentado" "" ""
 
 # 2. CI test ou cron de drill
-HAS_DRILL=$(grep -rlE "backup.*restore|restore.*drill|pg_dump.*test" .github/workflows/ scripts/ 2>/dev/null | head -1)
+HAS_DRILL=$(grep -rlE "backup.*restore|restore.*drill|pg_dump.*test" .github/workflows/ .forgejo/workflows/ .gitea/workflows/ scripts/ 2>/dev/null | head -1)
 [ -z "$HAS_DRILL" ] && add_finding "med" "Sem teste/cron de restore drill — 'backup nunca testado = backup que não existe'" "" ""
 
 # 3. Backup at-rest cifrado (sinal: AES, KMS, encryption)

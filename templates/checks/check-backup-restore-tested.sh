@@ -13,6 +13,7 @@
 # "aplicação de pé com dado bom". Esse número só existe se alguém tiver medido.
 BLINDAR_AGENT="check-backup-restore-tested"
 source "$(dirname "$0")/_lib.sh"
+source "$(dirname "$0")/_ci.sh"
 log_section "Check: restore exercitado (não só backup agendado)"
 
 # ─── Existe rotina de backup? ───
@@ -45,10 +46,10 @@ done
 [ -z "$RESTORE" ] && RESTORE=$(scan_src 'pg_restore|mysql[[:space:]]*<[[:space:]]*.*dump|mongorestore|restic restore|borg extract|wal-g backup-fetch|litestream restore|restore_?(test|drill|job)|restaura(r|cao|ção) (do )?backup' | head -1 | cut -d: -f1)
 
 if [ -z "$RESTORE" ]; then
-  for wf in .github/workflows/*.yml .github/workflows/*.yaml; do
+  while IFS= read -r wf; do
     [ -f "$wf" ] || continue
     grep -qiE 'restore' "$wf" 2>/dev/null && { RESTORE="$wf"; break; }
-  done
+  done < <(ci_workflows)
 fi
 
 if [ -z "$RESTORE" ]; then

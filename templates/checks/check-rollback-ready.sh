@@ -20,7 +20,7 @@ for f in docker-compose.yml docker-compose.yaml compose.yml compose.yaml \
          .github/workflows/release.yml Procfile; do
   [ -f "$f" ] && ALVOS="$ALVOS $f"
 done
-for f in .github/workflows/*.yml .github/workflows/*.yaml k8s/*.yaml k8s/*.yml; do
+for f in .github/workflows/*.yml .github/workflows/*.yaml .forgejo/workflows/*.yml .forgejo/workflows/*.yaml .gitea/workflows/*.yml .gitea/workflows/*.yaml k8s/*.yaml k8s/*.yml; do
   [ -f "$f" ] || continue
   grep -qEi '(docker|image:|deploy|kubectl|helm)' "$f" 2>/dev/null || continue
   case " $ALVOS " in *" $f "*) ;; *) ALVOS="$ALVOS $f" ;; esac

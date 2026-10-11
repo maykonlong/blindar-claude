@@ -46,7 +46,7 @@ ALVOS=""
 for f in Dockerfile Dockerfile.prod Dockerfile.production docker/Dockerfile build/Dockerfile; do
   [ -f "$f" ] && ALVOS="$ALVOS $f"
 done
-for f in .github/workflows/*.yml .github/workflows/*.yaml .gitlab-ci.yml Makefile; do
+for f in .github/workflows/*.yml .github/workflows/*.yaml .forgejo/workflows/*.yml .forgejo/workflows/*.yaml .gitea/workflows/*.yml .gitea/workflows/*.yaml .gitlab-ci.yml Makefile; do
   [ -f "$f" ] && ALVOS="$ALVOS $f"
 done
 

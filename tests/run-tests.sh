@@ -93,6 +93,12 @@ fi
 
 # ── Testes de spec (Node, v0.43 — ROADMAP #4/#16/#17) ──────────────────────
 if command -v node >/dev/null 2>&1; then
+  echo "── Sentinela + FastList JS/PostgreSQL/Forgejo + instalação Claude/Codex ──"
+  if node --test "$SCRIPT_DIR/sentinela-ingest.test.mjs" "$SCRIPT_DIR/fastlist-regressions.test.mjs" "$SCRIPT_DIR/install-runtime.test.mjs"; then
+    PASS_COUNT=$((PASS_COUNT+1))
+  else
+    FAIL_COUNT=$((FAIL_COUNT+1)); FAIL_LIST+=("Sentinela/FastList/runtime regressions")
+  fi
   echo ""
   echo "${BOLD}── specs (reproducibility / sbom / race-fuzz) ──${RESET}"
   if node "$SCRIPT_DIR/specs.test.js"; then

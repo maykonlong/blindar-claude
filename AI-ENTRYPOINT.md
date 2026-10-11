@@ -1,5 +1,8 @@
 # AI-ENTRYPOINT — leia primeiro
 
+Claude/Codex: leia [RUNTIMES](docs/RUNTIMES.md) para localizar esta instalação,
+adaptar ferramentas e importar evidência do Sentinela. O núcleo é compartilhado.
+
 > Você é uma AI que vai operar o skill `blindar` num projeto. Esta página
 > te diz exatamente o que fazer agora, com decision tree determinístico.
 >

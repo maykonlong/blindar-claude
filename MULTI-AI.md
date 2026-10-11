@@ -1,5 +1,9 @@
 # Rodando o blindar em qualquer AI
 
+Para instalações atuais Claude/Codex, siga [RUNTIMES](docs/RUNTIMES.md).
+Há um único núcleo; `node scripts/install-runtime.mjs --runtime both` instala
+nas duas ferramentas. A capacidade real de executar/delegar vem do runtime.
+
 Este skill foi extraído de execução no **Claude Code**, onde execução
 paralela real (`Workflow` / `agent()` / `parallel()`) está embutida. Mas
 o conteúdo é **markdown puro com prompts em texto** — qualquer AI moderna
@@ -12,6 +16,7 @@ Este documento descreve como rodar em outros assistentes.
 | AI | Modo | Paralelo real? | Velocidade relativa |
 |---|---|---|---|
 | **Claude Code (CLI/IDE)** | Nativo | sim (Workflow API) | 1x (referência) |
+| **Codex CLI/Desktop** | Nativo (mesmo núcleo) | quando disponível e permitido | depende do ambiente |
 | **Claude.ai web** | Manual | não (sequencial) | ~3-5x mais lento |
 | **ChatGPT (Plus/Team)** | Manual | não | ~3-5x mais lento |
 | **Gemini Advanced** | Manual | não | ~3-5x mais lento |
@@ -20,10 +25,10 @@ Este documento descreve como rodar em outros assistentes.
 
 ## Princípio fundamental — sempre multi-agente
 
-Mesmo em AI single-threaded, o blindar **simula multi-agente** por
-**role-play sequencial**. Cada papel (inventory, threats, security,
-adversarial reviewer) vira um turno separado da conversa, com o
-**contexto isolado por turno** para evitar viés.
+Sem subagentes disponíveis/permitidos, execute os playbooks em sequência e
+registre essa limitação. Trocar de papel na mesma conversa não isola contexto
+nem constitui revisão independente. Use subprocessos/agentes reais somente
+quando o runtime permitir, sem presumir Workflow API em outro assistente.
 
 Nunca rode o pipeline com 1 prompt monolítico do tipo "blinda esse
 projeto inteiro" — perde a vantagem do skill. Sempre **um agente por

@@ -3,6 +3,11 @@
 BLINDAR_AGENT="check-business-logic"
 source "$(dirname "$0")/_lib.sh"
 log_section "Check: business-logic (ASVS V11 — preço/desconto/race)"
+source "$(dirname "$0")/_js-postgres.sh"
+if ! js_pg_findings business; then
+  BLINDAR_MISSING_TOOL="node/js-postgres scanner"
+  emit_result "$BLINDAR_AGENT" "skipped" 0; exit 0
+fi
 
 if ! command -v rg >/dev/null 2>&1; then emit_result "$BLINDAR_AGENT" "skipped" 0; exit 0; fi
 
@@ -30,5 +35,6 @@ RACE=$(grep -c "findUnique\|findFirst" "$TMP" 2>/dev/null)
 [ "$RACE" -gt 0 ] && add_finding "med" "$RACE read-then-write sem transaction (race condition risk)" "" ""
 rm -f "$TMP"
 
+case "${FINDINGS[*]}" in *'"severity":"crit"'*|*'"severity":"high"'*) FAIL=1 ;; esac
 [ "$FAIL" -eq 1 ] && { emit_result "$BLINDAR_AGENT" "failed" 1; exit 1; }
 emit_result "$BLINDAR_AGENT" "passed" 0

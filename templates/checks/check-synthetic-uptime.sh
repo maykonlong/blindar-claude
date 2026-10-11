@@ -32,7 +32,7 @@ ACHOU=$(grep -rIlEi "$PROVEDORES" \
 
 # CI agendado batendo numa URL externa também vale: é ping de fora, com alerta.
 if [ -z "$ACHOU" ]; then
-  for wf in .github/workflows/*.yml .github/workflows/*.yaml; do
+  for wf in .github/workflows/*.yml .github/workflows/*.yaml .forgejo/workflows/*.yml .forgejo/workflows/*.yaml .gitea/workflows/*.yml .gitea/workflows/*.yaml; do
     [ -f "$wf" ] || continue
     grep -qE '^[[:space:]]*schedule:' "$wf" 2>/dev/null || continue
     grep -qE 'curl|wget|http(s)?://' "$wf" 2>/dev/null && { ACHOU="$wf"; break; }

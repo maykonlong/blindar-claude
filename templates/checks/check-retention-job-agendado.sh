@@ -33,7 +33,7 @@ log_info "política de retenção declarada em $ARQ_CFG:$LN_CFG"
 AGENDA=$(scan_src '(node-cron|@nestjs/schedule|@Cron\(|croniter|beat_schedule|APScheduler|BullMQ|repeatJobKey|pg_cron|CREATE[[:space:]]+EVENT|sidekiq-cron|OnCalendar=)' | head -5)
 
 if [ -z "$AGENDA" ]; then
-  for wf in .github/workflows/*.yml .github/workflows/*.yaml; do
+  for wf in .github/workflows/*.yml .github/workflows/*.yaml .forgejo/workflows/*.yml .forgejo/workflows/*.yaml .gitea/workflows/*.yml .gitea/workflows/*.yaml; do
     [ -f "$wf" ] || continue
     grep -qE '^[[:space:]]*schedule:' "$wf" 2>/dev/null && { AGENDA="$wf:1:schedule"; break; }
   done
