@@ -60,6 +60,9 @@ que já usa Forgejo.
 Os checks JS/PostgreSQL reconhecem schema por loja, `search_path`, SQL direto,
 estoque read/modify/write e testes em `test/`, inclusive nomes `isolamento`.
 São heurísticas estáticas, não análise completa de fluxo nem prova de ausência
-de SQLi. Atomicidade/isolamento precisam de testes com PostgreSQL real. Testes
+de SQLi. Entradas monetárias são triagem `med`: podem ser legítimas
+em cadastro/financeiro e não viram `crit` sem prova do fluxo e da autorização.
+Comentários preservam linhas para apontar a evidência no arquivo original.
+Atomicidade/isolamento precisam de testes com PostgreSQL real. Testes
 pulados por falta de banco e falhas de infraestrutura não provam segurança.
 Os casos locais FastList de referência estão nos testes `fastlist-regressions`.

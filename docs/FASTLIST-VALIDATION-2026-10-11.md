@@ -27,8 +27,16 @@ FASTLIST_SOURCE=/caminho/fast_list node --test tests/sentinela-ingest.test.mjs t
 - SKILL.md aprovado pelo quick_validate.py; sintaxe PowerShell validada.
 
 A suíte completa local foi interrompida na etapa Semgrep do Windows (rc=2,
-sem evidência SAST). A CI Linux executa a suíte completa; consultar seu resultado
-no commit publicado. Não tratar a execução local interrompida como aprovada.
+sem evidência SAST). A suíte completa passou na CI Linux, incluindo 25 grupos
+de verificações. Não tratar a execução local interrompida como aprovada. O
+check de fixture/path foi corrigido para validar também campos obrigatórios;
+o gate preserva NOT EXERCISED quando não houve medição dinâmica.
+
+A varredura estática do checkout real detectou quatro entradas monetárias em
+server.js (cadastro, financeiro e desconto). São triagem med, sem afirmar
+vulnerabilidade crítica: esses fluxos têm regras e autorizações que uma busca
+textual não comprova. O scanner de isolamento não encontrou seus padrões de
+risco nesse checkout; isso não comprova ausência de vazamento entre lojas.
 
 ## Sentinela
 

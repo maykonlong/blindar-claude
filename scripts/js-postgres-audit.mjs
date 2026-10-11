@@ -16,7 +16,8 @@ export function inspectProject(root = process.cwd()) {
       if (fs.statSync(file).size > 2 * 1024 * 1024) continue;
       const raw = fs.readFileSync(file, 'utf8');
       // Evita que documentação em comentários satisfaça guardas ou gere achados.
-      const code = raw.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' ')).replace(/^\s*(?:\/\/|#).*$/gm, '');
+      const blank = m => m.replace(/[^\r\n]/g, ' ');
+      const code = raw.replace(/\/\*[\s\S]*?\*\//g, blank).replace(/^[ \t]*(?:\/\/|#|--)[^\r\n]*/gm, blank);
       sources.push({ file: rel, code });
     }
   }
@@ -38,10 +39,10 @@ export function auditProject(root, mode) {
   for (const { file, code } of project.sources) {
     if (mode === 'business') {
       for (const m of code.matchAll(/\b(?:amount|price|total|discount|preco|preço|desconto)\s*=\s*(?:(?:Number|parseFloat|parseInt)\s*\(\s*)?req\.(?:body|query|params)\.[\w]+/g))
-        add('crit', 'Preço/desconto recebido diretamente do cliente: derive do catálogo e regras no servidor; revisar fluxo até a persistência.', file, code, m.index);
+        add('med', 'Entrada monetária da requisição: revisar autorização e validação até a persistência. Este padrão estático não comprova preço adulterável; cadastro/financeiro podem aceitar valores legitimamente.', file, code, m.index);
       for (const m of code.matchAll(/\b(?:const|let|var)\s*\{([^}]+)\}\s*=\s*req\.(?:body|query|params)/g))
         if (/\b(?:amount|price|total|discount|preco|preço|desconto)\b/.test(m[1]))
-          add('crit', 'Preço/desconto desestruturado da requisição: revisar validação contra catálogo e regras do servidor.', file, code, m.index);
+          add('med', 'Entrada monetária desestruturada da requisição: revisar autorização e regras do servidor. Não é vulnerabilidade confirmada por este padrão estático.', file, code, m.index);
       if (project.postgres) {
         for (const m of code.matchAll(/\bSELECT\b[^;`]{0,350}\b(?:stock|estoque|quantidade)\b[^;`]{0,350}(?:;|`)[\s\S]{0,600}?\bUPDATE\b[^;`]{0,250}\b(?:stock|estoque|quantidade)\s*=\s*(?:\$\d+|\?)/gi)) {
           const context = code.slice(Math.max(0, m.index - 300), m.index + m[0].length);

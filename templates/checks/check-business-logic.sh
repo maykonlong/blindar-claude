@@ -19,7 +19,7 @@ FAIL=0
 TMP=$(mktemp)
 rg -n "(amount|price|total|discount)\s*=\s*.*req\.(body|query|params)" --type ts --type py "${IGNORE[@]}" "${INTEL_GLOBS[@]}" > "$TMP" 2>/dev/null || true
 CLIENT_PRICING=$(wc -l < "$TMP" || echo 0)
-[ "$CLIENT_PRICING" -gt 0 ] && add_finding "crit" "$CLIENT_PRICING — preço/desconto do client aceito sem validar no DB" "" "" && FAIL=1
+[ "$CLIENT_PRICING" -gt 0 ] && add_finding "med" "$CLIENT_PRICING entradas monetárias da requisição — revisar autorização/validação. Padrão estático não comprova preço adulterável." "" ""
 rm -f "$TMP"
 
 # 2. Optimistic locking (version column) ausente

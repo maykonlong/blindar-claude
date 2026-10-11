@@ -19,7 +19,7 @@ function check(dir, name) {
 }
 test('JS/MJS/CJS: preço de requisição dispara e preço do catálogo não', () => {
   for (const ext of ['js', 'mjs', 'cjs']) fixture({ ['server.' + ext]: 'const price = Number(req.body.price);' }, dir => {
-    assert.equal(check(dir, 'check-business-logic').severities.crit, 1);
+    const r = check(dir, 'check-business-logic'); assert.equal(r.severities.med, 1); assert.equal(r.severities.crit, 0);
     writeFileSync(join(dir, 'server.' + ext), 'const price = catalogo.preco;');
     assert.equal(check(dir, 'check-business-logic').findings_count, 0);
   });
@@ -36,6 +36,8 @@ test('MAI-03: estoque read/modify/write dispara; UPDATE atômico e trava em tx n
 test('preço desestruturado é coberto; comentário de exemplo não dispara', () => {
   fixture({ 'pedido.js': 'const { price: preco } = req.body;' }, dir => {
     assert.equal(auditProject(dir, 'business').findings.length, 1);
+    writeFileSync(join(dir, 'pedido.js'), '// exemplo\n\n/* comentário\n longo */\nconst price = req.body.price;');
+    assert.equal(auditProject(dir, 'business').findings[0].line, '5');
     writeFileSync(join(dir, 'pedido.js'), '// const price = req.body.price;\nconst price = produto.preco;');
     assert.equal(auditProject(dir, 'business').findings.length, 0);
   });
@@ -73,4 +75,7 @@ test('checkout FastList real: reconhece PostgreSQL, schema por loja, test/ e For
   const p = inspectProject(fastlist); assert.equal(p.postgres, true); assert.equal(p.schemaTenancy, true); assert.equal(p.multiTenant, true);
   assert.ok(p.isolationTests.some(f => f === 'test/instagram-isolamento.test.js'));
   assert.ok(existsSync(join(fastlist, '.forgejo/workflows/pull-request.yml')));
+  // Cadastro de preço, título financeiro e desconto validados não podem virar
+  // críticos só pela presença de entrada monetária; fluxo requer revisão.
+  assert.ok(auditProject(fastlist, 'business').findings.every(f => f.severity !== 'crit'));
 });
